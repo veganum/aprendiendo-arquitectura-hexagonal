@@ -1,0 +1,342 @@
+// ============================================================
+// 📁 CAPA: PRESENTACIÓN
+// 📄 ARCHIVO: product-list.component.scss
+// ============================================================
+
+// Variables
+$primary: #4f46e5;
+$primary-hover: #3730a3;
+$danger: #ef4444;
+$success: #22c55e;
+$gold: #f59e0b;
+$gray-100: #f3f4f6;
+$gray-200: #e5e7eb;
+$gray-500: #6b7280;
+$gray-800: #1f2937;
+$border-radius: 12px;
+
+.page-container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 32px 24px;
+  font-family: 'Segoe UI', sans-serif;
+  color: $gray-800;
+}
+
+// ── CABECERA ──────────────────────────────────────────
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 28px;
+
+  h1 {
+    font-size: 2rem;
+    font-weight: 800;
+    margin: 0;
+  }
+
+  .subtitle {
+    color: $gray-500;
+    margin: 4px 0 0;
+    font-size: 0.9rem;
+  }
+}
+
+.stats {
+  display: flex;
+  gap: 12px;
+}
+
+.stat-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: $gray-100;
+  padding: 8px 16px;
+  border-radius: 8px;
+
+  .stat-number {
+    font-size: 1.5rem;
+    font-weight: 700;
+  }
+
+  .stat-label {
+    font-size: 0.75rem;
+    color: $gray-500;
+  }
+
+  &.available .stat-number { color: $success; }
+  &.out .stat-number { color: $danger; }
+}
+
+// ── BOTONES ──────────────────────────────────────────
+.btn-primary {
+  background: $primary;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+
+  &:hover { background: $primary-hover; }
+  &:disabled { opacity: 0.6; cursor: not-allowed; }
+}
+
+.btn-secondary {
+  background: white;
+  color: #4f46e5;
+  border: 2px solid #4f46e5;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background: #4f46e5;
+    color: white;
+  }
+}
+
+.btn-danger {
+  background: $danger;
+  color: white;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: opacity 0.2s;
+
+  &:hover { opacity: 0.8; }
+  &.small { padding: 6px 12px; }
+}
+
+// ── ALERTAS ──────────────────────────────────────────
+.alert {
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  font-weight: 500;
+
+  &.success { background: #dcfce7; color: #166534; border-left: 4px solid $success; }
+  &.error { background: #fee2e2; color: #991b1b; border-left: 4px solid $danger; }
+  &.small { font-size: 0.9rem; padding: 8px 12px; }
+}
+
+// ── FORMULARIO ──────────────────────────────────────────
+.form-card {
+  background: white;
+  border: 2px solid $primary;
+  border-radius: $border-radius;
+  padding: 24px;
+  margin-bottom: 28px;
+  box-shadow: 0 4px 20px rgba(79, 70, 229, 0.1);
+
+  h2 { margin: 0 0 20px; font-size: 1.25rem; }
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+
+  label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: $gray-500;
+  }
+}
+
+.form-input {
+  border: 1.5px solid $gray-200;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 0.95rem;
+  outline: none;
+  transition: border-color 0.2s;
+
+  &:focus { border-color: $primary; }
+}
+
+// ── ESTADOS ──────────────────────────────────────────
+.loading-state {
+  text-align: center;
+  padding: 60px;
+  color: $gray-500;
+
+  p { font-size: 1.1rem; margin: 12px 0 4px; }
+  small { font-size: 0.8rem; }
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid $gray-200;
+  border-top-color: $primary;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: 0 auto;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.empty-state {
+  text-align: center;
+  padding: 60px;
+  color: $gray-500;
+
+  p { font-size: 1.2rem; margin-bottom: 20px; }
+}
+
+// ── GRID DE PRODUCTOS ──────────────────────────────────────────
+.product-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+  margin-bottom: 40px;
+}
+
+.product-card {
+  background: white;
+  border: 1.5px solid $gray-200;
+  border-radius: $border-radius;
+  padding: 20px;
+  transition: transform 0.2s, box-shadow 0.2s;
+  position: relative;
+
+  &:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.1);
+  }
+
+  &.out-of-stock {
+    opacity: 0.65;
+    background: $gray-100;
+  }
+
+  &.expensive {
+    border-color: $gold;
+  }
+}
+
+.card-badges {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.badge {
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 100px;
+
+  &.red { background: #fee2e2; color: #991b1b; }
+  &.green { background: #dcfce7; color: #166534; }
+  &.gold { background: #fef3c7; color: #92400e; }
+}
+
+.card-category {
+  font-size: 0.78rem;
+  color: $gray-500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+}
+
+.card-name {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin: 0 0 12px;
+}
+
+.card-price {
+  margin-bottom: 10px;
+
+  .price-main {
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: $primary;
+  }
+
+  .price-discount {
+    display: block;
+    font-size: 0.8rem;
+    color: $success;
+    margin-top: 2px;
+  }
+}
+
+.card-stock {
+  font-size: 0.9rem;
+  color: $gray-500;
+  margin-bottom: 16px;
+
+  .no-stock { color: $danger; font-weight: 600; }
+}
+
+.card-actions {
+  display: flex;
+  justify-content: flex-end;
+  border-top: 1px solid $gray-200;
+  padding-top: 12px;
+}
+
+// ── LEYENDA DE ARQUITECTURA ──────────────────────────────────────────
+.arch-legend {
+  margin-top: 48px;
+  background: $gray-100;
+  border-radius: $border-radius;
+  padding: 24px;
+
+  h3 {
+    margin: 0 0 20px;
+    font-size: 1rem;
+    color: $gray-500;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+}
+
+.arch-flow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.arch-step {
+  padding: 10px 16px;
+  border-radius: 8px;
+  text-align: center;
+
+  strong { display: block; font-size: 0.9rem; }
+  small { font-size: 0.75rem; opacity: 0.8; }
+
+  &.ui     { background: #e0e7ff; color: #3730a3; }
+  &.app    { background: #fce7f3; color: #9d174d; }
+  &.domain { background: #dcfce7; color: #166534; }
+  &.infra  { background: #fef3c7; color: #92400e; }
+}
+
+.arch-arrow {
+  font-size: 1.5rem;
+  color: $gray-500;
+  font-weight: bold;
+}

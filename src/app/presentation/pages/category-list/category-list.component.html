@@ -1,0 +1,57 @@
+<div class="page-container">
+
+    <div class="page-header">
+        <div>
+            <h1>🏷️ Categorías</h1>
+            <p class="subtitle">{{ categories.length }} categorías en total</p>
+        </div>
+        <button class="btn-primary" (click)="showForm = !showForm">
+            {{ showForm ? '✕ Cancelar' : '+ Nueva Categoría' }}
+        </button>
+    </div>
+
+    <div class="alert success" *ngIf="successMessage">✅ {{ successMessage }}</div>
+    <div class="alert error" *ngIf="error">❌ {{ error }}</div>
+
+    <!-- FORMULARIO -->
+    <div class="form-card" *ngIf="showForm">
+        <h2>Nueva Categoría</h2>
+        <div class="alert error small" *ngIf="formError">{{ formError }}</div>
+
+        <div class="form-group">
+            <label>Nombre *</label>
+            <input type="text" [(ngModel)]="newCategory.name" placeholder="Ej: Software" class="form-input" />
+        </div>
+        <div class="form-group">
+            <label>Descripción *</label>
+            <input type="text" [(ngModel)]="newCategory.description" placeholder="Describe la categoría"
+                class="form-input" />
+        </div>
+        <button class="btn-primary" (click)="createCategory()" [disabled]="saving">
+            {{ saving ? 'Guardando...' : '💾 Guardar' }}
+        </button>
+    </div>
+
+    <!-- LOADING -->
+    <div class="loading-state" *ngIf="loading">
+        <div class="spinner"></div>
+        <p>Cargando categorías...</p>
+    </div>
+
+    <!-- LISTA -->
+    <div class="category-grid" *ngIf="!loading">
+        <div class="category-card" *ngFor="let category of categories" [class.empty]="!hasProducts(category)">
+
+            <div class="card-icon">🏷️</div>
+            <h3>{{ category.name }}</h3>
+            <p class="description">{{ category.description }}</p>
+
+            <div class="product-count" [class.zero]="!hasProducts(category)">
+                📦 {{ category.productCount }} productos
+            </div>
+
+            <span class="badge" *ngIf="!hasProducts(category)">Sin productos</span>
+        </div>
+    </div>
+
+</div>
