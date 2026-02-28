@@ -1,57 +1,82 @@
 <div class="page-container">
-
-    <div class="page-header">
-        <div>
-            <h1>🏷️ Categorías</h1>
-            <p class="subtitle">{{ categories.length }} categorías en total</p>
-        </div>
-        <button class="btn-primary" (click)="showForm = !showForm">
-            {{ showForm ? '✕ Cancelar' : '+ Nueva Categoría' }}
-        </button>
+  <div class="page-header">
+    <div>
+      <h1>Categorias</h1>
+      <p class="subtitle">{{ categoryCount() }} categorias en total</p>
     </div>
+    <button class="btn-primary" (click)="toggleForm()">
+      {{ showForm() ? "Cancelar" : "Nueva Categoria" }}
+    </button>
+  </div>
 
-    <div class="alert success" *ngIf="successMessage">✅ {{ successMessage }}</div>
-    <div class="alert error" *ngIf="error">❌ {{ error }}</div>
+  @if (successMessage()) {
+    <div class="alert success">{{ successMessage() }}</div>
+  }
 
-    <!-- FORMULARIO -->
-    <div class="form-card" *ngIf="showForm">
-        <h2>Nueva Categoría</h2>
-        <div class="alert error small" *ngIf="formError">{{ formError }}</div>
+  @if (error()) {
+    <div class="alert error">{{ error() }}</div>
+  }
 
-        <div class="form-group">
-            <label>Nombre *</label>
-            <input type="text" [(ngModel)]="newCategory.name" placeholder="Ej: Software" class="form-input" />
-        </div>
-        <div class="form-group">
-            <label>Descripción *</label>
-            <input type="text" [(ngModel)]="newCategory.description" placeholder="Describe la categoría"
-                class="form-input" />
-        </div>
-        <button class="btn-primary" (click)="createCategory()" [disabled]="saving">
-            {{ saving ? 'Guardando...' : '💾 Guardar' }}
-        </button>
+  @if (showForm()) {
+    <div class="form-card">
+      <h2>Nueva Categoria</h2>
+
+      @if (formError()) {
+        <div class="alert error small">{{ formError() }}</div>
+      }
+
+      <div class="form-group">
+        <label>Nombre *</label>
+        <input
+          type="text"
+          [ngModel]="draftName()"
+          (ngModelChange)="draftName.set($event)"
+          placeholder="Ej: Software"
+          class="form-input"
+        />
+      </div>
+
+      <div class="form-group">
+        <label>Descripcion *</label>
+        <input
+          type="text"
+          [ngModel]="draftDescription()"
+          (ngModelChange)="draftDescription.set($event)"
+          placeholder="Describe la categoria"
+          class="form-input"
+        />
+      </div>
+
+      <button class="btn-primary" (click)="createCategory()" [disabled]="saving()">
+        {{ saving() ? "Guardando..." : "Guardar" }}
+      </button>
     </div>
+  }
 
-    <!-- LOADING -->
-    <div class="loading-state" *ngIf="loading">
-        <div class="spinner"></div>
-        <p>Cargando categorías...</p>
+  @if (loading()) {
+    <div class="loading-state">
+      <div class="spinner"></div>
+      <p>Cargando categorias...</p>
     </div>
+  }
 
-    <!-- LISTA -->
-    <div class="category-grid" *ngIf="!loading">
-        <div class="category-card" *ngFor="let category of categories" [class.empty]="!hasProducts(category)">
+  @if (!loading()) {
+    <div class="category-grid">
+      @for (category of categories(); track category.id) {
+        <div class="category-card" [class.empty]="!hasProducts(category)">
+          <div class="card-icon">Categoria</div>
+          <h3>{{ category.name }}</h3>
+          <p class="description">{{ category.description }}</p>
 
-            <div class="card-icon">🏷️</div>
-            <h3>{{ category.name }}</h3>
-            <p class="description">{{ category.description }}</p>
+          <div class="product-count" [class.zero]="!hasProducts(category)">
+            {{ category.productCount }} productos
+          </div>
 
-            <div class="product-count" [class.zero]="!hasProducts(category)">
-                📦 {{ category.productCount }} productos
-            </div>
-
-            <span class="badge" *ngIf="!hasProducts(category)">Sin productos</span>
+          @if (!hasProducts(category)) {
+            <span class="badge">Sin productos</span>
+          }
         </div>
+      }
     </div>
-
+  }
 </div>

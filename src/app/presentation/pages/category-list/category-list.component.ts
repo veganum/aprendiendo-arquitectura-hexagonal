@@ -1,76 +1,113 @@
-import { Component, OnInit } from "@angular/core";
-import { CommonModule } from "@angular/common";
+import { Component, DestroyRef, computed, inject, signal } from "@angular/core";
+import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { FormsModule } from "@angular/forms";
+import { finalize } from "rxjs";
+import { CreateCategoryUseCase } from "../../../core/application/use-cases/category/create-category.use-case";
+import { GetCategoriesUseCase } from "../../../core/application/use-cases/category/get-categories.use-case";
 import {
   Category,
   CategoryDomain,
 } from "../../../core/domain/models/category.model";
-import { GetCategoriesUseCase } from "../../../core/application/use-cases/category/get-categories.use-case";
-import { CreateCategoryUseCase } from "../../../core/application/use-cases/category/create-category.use-case";
-
 
 @Component({
   selector: "app-category-list",
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   templateUrl: "./category-list.component.html",
   styleUrls: ["./category-list.component.scss"],
 })
-export class CategoryListComponent implements OnInit {
-  categories: Category[] = [];
-  loading = true;
-  error = "";
-  successMessage = "";
-  showForm = false;
-  saving = false;
-  formError = "";
+export class CategoryListComponent {
+  private readonly getCategoriesUseCase = inject(GetCategoriesUseCase);
+  private readonly createCategoryUseCase = inject(CreateCategoryUseCase);
+  private readonly destroyRef = inject(DestroyRef);
 
-  newCategory = { name: "", description: "", productCount: 0 };
+  readonly categories = signal<Category[]>([]);
+  readonly loading = signal(true);
+  readonly error = signal("");
+  readonly successMessage = signal("");
+  readonly showForm = signal(false);
+  readonly saving = signal(false);
+  readonly formError = signal("");
 
-  constructor(
-    private getCategoriesUseCase: GetCategoriesUseCase,
-    private createCategoryUseCase: CreateCategoryUseCase,
-  ) {}
+  readonly draftName = signal("");
+  readonly draftDescription = signal("");
 
-  ngOnInit(): void {
-    this.getCategoriesUseCase.execute().subscribe({
-      next: (categories) => {
-        this.categories = categories;
-        this.loading = false;
-      },
-      error: (err) => {
-        this.error = err.message;
-        this.loading = false;
-      },
-    });
+  readonly categoryCount = computed(() => this.categories().length);
+
+  constructor() {
+    this.loadCategories();
+  }
+
+  loadCategories(): void {
+    this.loading.set(true);
+    this.error.set("");
+
+    this.getCategoriesUseCase
+      .execute()
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.loading.set(false)),
+      )
+      .subscribe({
+        next: (categories) => {
+          this.categories.set(categories);
+        },
+        error: (err) => {
+          this.error.set(err.message);
+        },
+      });
   }
 
   createCategory(): void {
-    this.formError = "";
-    this.saving = true;
+    this.formError.set("");
+    this.saving.set(true);
+
     try {
-      this.createCategoryUseCase.execute(this.newCategory).subscribe({
-        next: (category) => {
-          this.categories.push(category);
-          this.successMessage = `"${category.name}" creada correctamente`;
-          setTimeout(() => (this.successMessage = ""), 3000);
-          this.newCategory = { name: "", description: "", productCount: 0 };
-          this.showForm = false;
-          this.saving = false;
-        },
-        error: (err) => {
-          this.formError = err.message;
-          this.saving = false;
-        },
-      });
+      this.createCategoryUseCase
+        .execute({
+          name: this.draftName(),
+          description: this.draftDescription(),
+          productCount: 0,
+        })
+        .pipe(
+          takeUntilDestroyed(this.destroyRef),
+          finalize(() => this.saving.set(false)),
+        )
+        .subscribe({
+          next: (category) => {
+            this.categories.update((categories) => [...categories, category]);
+            this.successMessage.set(`"${category.name}" creada correctamente`);
+            setTimeout(() => this.successMessage.set(""), 3000);
+            this.closeForm();
+          },
+          error: (err) => {
+            this.formError.set(err.message);
+          },
+        });
     } catch (err: any) {
-      this.formError = err.message;
-      this.saving = false;
+      this.formError.set(err.message);
+      this.saving.set(false);
     }
   }
 
-  // Usa la lógica del DOMINIO — no pongas esta lógica en el HTML
+  toggleForm(): void {
+    this.showForm.update((showForm) => !showForm);
+    this.formError.set("");
+    this.resetDraft();
+  }
+
   hasProducts(category: Category): boolean {
     return CategoryDomain.hasProducts(category);
+  }
+
+  private closeForm(): void {
+    this.showForm.set(false);
+    this.formError.set("");
+    this.resetDraft();
+  }
+
+  private resetDraft(): void {
+    this.draftName.set("");
+    this.draftDescription.set("");
   }
 }

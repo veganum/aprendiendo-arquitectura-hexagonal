@@ -1,187 +1,192 @@
 // ============================================================
-// 📁 CAPA: PRESENTACIÓN
-// 📄 ARCHIVO: product-list.component.ts
+// CAPA: PRESENTACION
+// ARCHIVO: product-list.component.ts
 // ============================================================
-// ¿QUÉ ES ESTO?
-//   El componente Angular que el usuario VE.
-//   Su única responsabilidad es MOSTRAR datos y capturar
-//   acciones del usuario (clicks, formularios).
-//
-// ⚠️ REGLA DE ORO:
-//   Este componente NO contiene lógica de negocio.
-//   No valida si el precio es correcto, no sabe cómo
-//   guardar en la API. Solo llama casos de uso y muestra resultados.
-//
-// 💉 INYECTA:
-//   - GetProductsUseCase  → para cargar la lista
-//   - CreateProductUseCase → para agregar un producto
-//   - DeleteProductUseCase → para eliminar
-//   NUNCA inyecta el repositorio directamente
+// Componente de lista de productos usando estado reactivo
+// con signals y plantillas con control flow moderno.
 // ============================================================
 
-import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { Product, ProductDomain } from '../../../core/domain/models/product.model';
-
-import { Router } from '@angular/router';
-import { GetProductsUseCase } from '../../../core/application/use-cases/product/get-products.use-case';
-import { CreateProductUseCase } from '../../../core/application/use-cases/product/create-product.use-case';
-import { DeleteProductUseCase } from '../../../core/application/use-cases/product/delete-product.use-case';
+import { DecimalPipe } from "@angular/common";
+import {
+  Component,
+  DestroyRef,
+  computed,
+  inject,
+  signal,
+} from "@angular/core";
+import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
+import { FormsModule } from "@angular/forms";
+import { Router } from "@angular/router";
+import { finalize } from "rxjs";
+import { CreateProductUseCase } from "../../../core/application/use-cases/product/create-product.use-case";
+import { DeleteProductUseCase } from "../../../core/application/use-cases/product/delete-product.use-case";
+import { GetProductsUseCase } from "../../../core/application/use-cases/product/get-products.use-case";
+import { Product, ProductDomain } from "../../../core/domain/models/product.model";
 
 @Component({
   selector: "app-product-list",
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule, DecimalPipe],
   templateUrl: "./product-list.component.html",
   styleUrls: ["./product-list.component.scss"],
 })
-export class ProductListComponent implements OnInit {
-  // Estado del componente
-  products: Product[] = [];
-  loading = true;
-  error = "";
-  successMessage = "";
+export class ProductListComponent {
+  private readonly getProductsUseCase = inject(GetProductsUseCase);
+  private readonly createProductUseCase = inject(CreateProductUseCase);
+  private readonly deleteProductUseCase = inject(DeleteProductUseCase);
+  private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
 
-  // Estado del formulario para crear producto
-  showForm = false;
-  newProduct = {
-    name: "",
-    price: 0,
-    stock: 0,
-    category: "",
-  };
-  formError = "";
-  saving = false;
+  readonly products = signal<Product[]>([]);
+  readonly loading = signal(true);
+  readonly error = signal("");
+  readonly successMessage = signal("");
+  readonly showForm = signal(false);
+  readonly formError = signal("");
+  readonly saving = signal(false);
 
-  categories = [
+  readonly draftName = signal("");
+  readonly draftPrice = signal(0);
+  readonly draftStock = signal(0);
+  readonly draftCategory = signal("");
+
+  readonly categories = [
     "Electrónica",
     "Periféricos",
     "Audio",
     "Accesorios",
     "Software",
-  ];
+  ] as const;
 
-  // ✅ Inyecta CASOS DE USO, nunca el repositorio directamente
-  constructor(
-    private getProductsUseCase: GetProductsUseCase,
-    private createProductUseCase: CreateProductUseCase,
-    private deleteProductUseCase: DeleteProductUseCase,
-    private router: Router,
-  ) {}
+  readonly availableCount = computed(
+    () =>
+      this.products().filter((product) => ProductDomain.isAvailable(product))
+        .length,
+  );
+  readonly uniqueCategories = computed(() => [
+    ...new Set(this.products().map((product) => product.category)),
+  ]);
 
-  ngOnInit(): void {
+  constructor() {
     this.loadProducts();
   }
 
-  // Carga productos usando el caso de uso
   loadProducts(): void {
-    this.loading = true;
-    this.error = "";
+    this.loading.set(true);
+    this.error.set("");
 
-    this.getProductsUseCase.execute().subscribe({
-      next: (products) => {
-        this.products = products;
-        this.loading = false;
-      },
-      error: (err) => {
-        this.error = "Error al cargar los productos: " + err.message;
-        this.loading = false;
-      },
-    });
-  }
-
-  // Crear producto — delega al caso de uso
-  createProduct(): void {
-    this.formError = "";
-    this.saving = true;
-
-    try {
-      // El caso de uso valida las reglas de negocio
-      // Si hay error de validación, lanza una excepción
-      this.createProductUseCase.execute(this.newProduct).subscribe({
-        next: (product) => {
-          this.products.push(product);
-          this.showSuccessMessage(
-            `Producto "${product.name}" creado exitosamente`,
-          );
-          this.resetForm();
-          this.saving = false;
+    this.getProductsUseCase
+      .execute()
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.loading.set(false)),
+      )
+      .subscribe({
+        next: (products) => {
+          this.products.set(products);
         },
         error: (err) => {
-          this.formError = err.message;
-          this.saving = false;
+          this.error.set(`Error al cargar los productos: ${err.message}`);
         },
       });
+  }
+
+  createProduct(): void {
+    this.formError.set("");
+    this.saving.set(true);
+
+    try {
+      const newProduct = {
+        name: this.draftName(),
+        price: this.draftPrice(),
+        stock: this.draftStock(),
+        category: this.draftCategory(),
+      };
+
+      this.createProductUseCase
+        .execute(newProduct)
+        .pipe(
+          takeUntilDestroyed(this.destroyRef),
+          finalize(() => this.saving.set(false)),
+        )
+        .subscribe({
+          next: (product) => {
+            this.products.update((products) => [...products, product]);
+            this.showSuccess(`Producto "${product.name}" creado exitosamente`);
+            this.closeForm();
+          },
+          error: (err) => {
+            this.formError.set(err.message);
+          },
+        });
     } catch (err: any) {
-      // Error de validación del caso de uso (síncrono)
-      this.formError = err.message;
-      this.saving = false;
+      this.formError.set(err.message);
+      this.saving.set(false);
     }
   }
 
-  // Eliminar producto
   deleteProduct(product: Product): void {
-    if (!confirm(`¿Eliminar "${product.name}"?`)) return;
+    if (!confirm(`Eliminar "${product.name}"?`)) {
+      return;
+    }
 
-    this.deleteProductUseCase.execute(product.id).subscribe({
-      next: () => {
-        this.products = this.products.filter((p) => p.id !== product.id);
-        this.showSuccessMessage(`Producto "${product.name}" eliminado`);
-      },
-      error: (err) => {
-        this.error = err.message;
-      },
-    });
+    this.deleteProductUseCase
+      .execute(product.id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.products.update((products) =>
+            products.filter((currentProduct) => currentProduct.id !== product.id),
+          );
+          this.showSuccess(`Producto "${product.name}" eliminado`);
+        },
+        error: (err) => {
+          this.error.set(err.message);
+        },
+      });
   }
 
-  // Usa la lógica del DOMINIO para saber si está disponible
-  // La regla vive en ProductDomain, no aquí
   isAvailable(product: Product): boolean {
     return ProductDomain.isAvailable(product);
   }
 
-  // Usa la lógica del DOMINIO para saber si es caro
   isExpensive(product: Product): boolean {
     return ProductDomain.isExpensive(product);
   }
 
-  // Calcula precio con descuento usando lógica del DOMINIO
   getPriceWithDiscount(product: Product): number {
-    return ProductDomain.applyDiscount(product, 10); // 10% de descuento
+    return ProductDomain.applyDiscount(product, 10);
   }
 
-  // Helpers del componente
   toggleForm(): void {
-    this.showForm = !this.showForm;
-    this.formError = "";
-    this.resetForm();
+    this.showForm.update((showForm) => !showForm);
+    this.formError.set("");
+    this.resetDraft();
   }
 
-  private resetForm(): void {
-    this.newProduct = { name: "", price: 0, stock: 0, category: "" };
-    this.showForm = false;
-  }
-
-  private showSuccessMessage(msg: string): void {
-    this.successMessage = msg;
-    setTimeout(() => (this.successMessage = ""), 3000);
-  }
-
-  // Contador por categoría (útil para el resumen)
   getCountByCategory(category: string): number {
-    return this.products.filter((p) => p.category === category).length;
-  }
-
-  get uniqueCategories(): string[] {
-    return [...new Set(this.products.map((p) => p.category))];
-  }
-
-  get availableCount(): number {
-    return this.products.filter((p) => ProductDomain.isAvailable(p)).length;
+    return this.products().filter((product) => product.category === category).length;
   }
 
   goToCategories(): void {
     this.router.navigate(["/categorias"]);
+  }
+
+  private closeForm(): void {
+    this.showForm.set(false);
+    this.formError.set("");
+    this.resetDraft();
+  }
+
+  private resetDraft(): void {
+    this.draftName.set("");
+    this.draftPrice.set(0);
+    this.draftStock.set(0);
+    this.draftCategory.set("");
+  }
+
+  private showSuccess(message: string): void {
+    this.successMessage.set(message);
+    setTimeout(() => this.successMessage.set(""), 3000);
   }
 }

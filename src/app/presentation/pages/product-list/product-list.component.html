@@ -1,187 +1,192 @@
-<!-- ============================================================
-     📁 CAPA: PRESENTACIÓN
-     📄 ARCHIVO: product-list.component.html
-     ============================================================
-     Solo muestra datos y captura acciones del usuario.
-     Toda la lógica está en el .ts y en los casos de uso.
-     ============================================================ -->
-
 <div class="page-container">
-
-  <!-- CABECERA -->
   <div class="page-header">
     <div class="header-title">
-      <h1>📦 Gestión de Productos</h1>
-      <p class="subtitle">Arquitectura Hexagonal — Angular</p>
+      <h1>Gestion de Productos</h1>
+      <p class="subtitle">Arquitectura Hexagonal con Angular</p>
     </div>
 
-    <!-- Resumen rápido -->
-    <div class="stats" *ngIf="!loading && products.length > 0">
-      <div class="stat-badge">
-        <span class="stat-number">{{ products.length }}</span>
-        <span class="stat-label">Total</span>
+    @if (!loading() && products().length > 0) {
+      <div class="stats">
+        <div class="stat-badge">
+          <span class="stat-number">{{ products().length }}</span>
+          <span class="stat-label">Total</span>
+        </div>
+        <div class="stat-badge available">
+          <span class="stat-number">{{ availableCount() }}</span>
+          <span class="stat-label">Disponibles</span>
+        </div>
+        <div class="stat-badge out">
+          <span class="stat-number">{{ products().length - availableCount() }}</span>
+          <span class="stat-label">Sin Stock</span>
+        </div>
       </div>
-      <div class="stat-badge available">
-        <span class="stat-number">{{ availableCount }}</span>
-        <span class="stat-label">Disponibles</span>
-      </div>
-      <div class="stat-badge out">
-        <span class="stat-number">{{ products.length - availableCount }}</span>
-        <span class="stat-label">Sin Stock</span>
-      </div>
-    </div>
+    }
 
     <button class="btn-secondary" (click)="goToCategories()">
-      🏷️ Ver Categorías
+      Ver Categorias
     </button>
     <button class="btn-primary" (click)="toggleForm()">
-      {{ showForm ? '✕ Cancelar' : '+ Nuevo Producto' }}
+      {{ showForm() ? "Cancelar" : "Nuevo Producto" }}
     </button>
   </div>
 
-  <!-- MENSAJES DE FEEDBACK -->
-  <div class="alert success" *ngIf="successMessage">✅ {{ successMessage }}</div>
-  <div class="alert error" *ngIf="error">❌ {{ error }}</div>
+  @if (successMessage()) {
+    <div class="alert success">{{ successMessage() }}</div>
+  }
 
-  <!-- ==================== FORMULARIO DE CREACIÓN ==================== -->
-  <!-- Se muestra/oculta con showForm. Los datos van a newProduct -->
-  <div class="form-card" *ngIf="showForm">
-    <h2>➕ Nuevo Producto</h2>
+  @if (error()) {
+    <div class="alert error">{{ error() }}</div>
+  }
 
-    <div class="alert error small" *ngIf="formError">{{ formError }}</div>
+  @if (showForm()) {
+    <div class="form-card">
+      <h2>Nuevo Producto</h2>
 
-    <!-- Nombre -->
-    <div class="form-group">
-      <label>Nombre del producto *</label>
-      <input
-        type="text"
-        [(ngModel)]="newProduct.name"
-        placeholder="Ej: Laptop Dell XPS"
-        class="form-input"
-      />
-    </div>
+      @if (formError()) {
+        <div class="alert error small">{{ formError() }}</div>
+      }
 
-    <!-- Precio y Stock en fila -->
-    <div class="form-row">
       <div class="form-group">
-        <label>Precio (USD) *</label>
+        <label>Nombre del producto *</label>
         <input
-          type="number"
-          [(ngModel)]="newProduct.price"
-          placeholder="0.00"
-          min="0"
+          type="text"
+          [ngModel]="draftName()"
+          (ngModelChange)="draftName.set($event)"
+          placeholder="Ej: Laptop Dell XPS"
           class="form-input"
         />
       </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Precio (USD) *</label>
+          <input
+            type="number"
+            [ngModel]="draftPrice()"
+            (ngModelChange)="draftPrice.set($event)"
+            placeholder="0.00"
+            min="0"
+            class="form-input"
+          />
+        </div>
+        <div class="form-group">
+          <label>Stock *</label>
+          <input
+            type="number"
+            [ngModel]="draftStock()"
+            (ngModelChange)="draftStock.set($event)"
+            placeholder="0"
+            min="0"
+            class="form-input"
+          />
+        </div>
+      </div>
+
       <div class="form-group">
-        <label>Stock *</label>
-        <input
-          type="number"
-          [(ngModel)]="newProduct.stock"
-          placeholder="0"
-          min="0"
+        <label>Categoria *</label>
+        <select
+          [ngModel]="draftCategory()"
+          (ngModelChange)="draftCategory.set($event)"
           class="form-input"
-        />
+        >
+          <option value="">-- Seleccionar --</option>
+          @for (category of categories; track category) {
+            <option [value]="category">{{ category }}</option>
+          }
+        </select>
       </div>
+
+      <button class="btn-primary" (click)="createProduct()" [disabled]="saving()">
+        {{ saving() ? "Guardando..." : "Guardar Producto" }}
+      </button>
     </div>
+  }
 
-    <!-- Categoría -->
-    <div class="form-group">
-      <label>Categoría *</label>
-      <select [(ngModel)]="newProduct.category" class="form-input">
-        <option value="">-- Seleccionar --</option>
-        <option *ngFor="let cat of categories" [value]="cat">{{ cat }}</option>
-      </select>
+  @if (loading()) {
+    <div class="loading-state">
+      <div class="spinner"></div>
+      <p>Cargando productos...</p>
+      <small>Simulando latencia de red (500ms)</small>
     </div>
+  }
 
-    <button class="btn-primary" (click)="createProduct()" [disabled]="saving">
-      {{ saving ? 'Guardando...' : '💾 Guardar Producto' }}
-    </button>
-  </div>
-
-  <!-- ==================== ESTADO DE CARGA ==================== -->
-  <div class="loading-state" *ngIf="loading">
-    <div class="spinner"></div>
-    <p>Cargando productos...</p>
-    <small>Simulando latencia de red (500ms)</small>
-  </div>
-
-  <!-- ==================== LISTA VACÍA ==================== -->
-  <div class="empty-state" *ngIf="!loading && products.length === 0 && !error">
-    <p>📭 No hay productos aún</p>
-    <button class="btn-primary" (click)="toggleForm()">Crear el primero</button>
-  </div>
-
-  <!-- ==================== GRID DE PRODUCTOS ==================== -->
-  <div class="product-grid" *ngIf="!loading && products.length > 0">
-
-    <div
-      class="product-card"
-      *ngFor="let product of products"
-      [class.out-of-stock]="!isAvailable(product)"
-      [class.expensive]="isExpensive(product)"
-    >
-
-      <!-- Badge de estado -->
-      <div class="card-badges">
-        <span class="badge red" *ngIf="!isAvailable(product)">Sin Stock</span>
-        <span class="badge gold" *ngIf="isExpensive(product)">Premium</span>
-        <span class="badge green" *ngIf="isAvailable(product) && !isExpensive(product)">Disponible</span>
-      </div>
-
-      <!-- Contenido -->
-      <div class="card-category">{{ product.category }}</div>
-      <h3 class="card-name">{{ product.name }}</h3>
-
-      <div class="card-price">
-        <span class="price-main">${{ product.price | number:'1.2-2' }}</span>
-        <span class="price-discount" *ngIf="isAvailable(product)">
-          con 10% desc: ${{ getPriceWithDiscount(product) | number:'1.2-2' }}
-        </span>
-      </div>
-
-      <div class="card-stock">
-        <!-- Muestra barra visual de stock -->
-        <span [class.no-stock]="!isAvailable(product)">
-          📦 Stock: {{ product.stock }} unidades
-        </span>
-      </div>
-
-      <!-- Acciones -->
-      <div class="card-actions">
-        <button class="btn-danger small" (click)="deleteProduct(product)">
-          🗑️ Eliminar
-        </button>
-      </div>
+  @if (!loading() && products().length === 0 && !error()) {
+    <div class="empty-state">
+      <p>No hay productos aun</p>
+      <button class="btn-primary" (click)="toggleForm()">Crear el primero</button>
     </div>
+  }
 
-  </div>
+  @if (!loading() && products().length > 0) {
+    <div class="product-grid">
+      @for (product of products(); track product.id) {
+        <div
+          class="product-card"
+          [class.out-of-stock]="!isAvailable(product)"
+          [class.expensive]="isExpensive(product)"
+        >
+          <div class="card-badges">
+            @if (!isAvailable(product)) {
+              <span class="badge red">Sin Stock</span>
+            }
+            @if (isExpensive(product)) {
+              <span class="badge gold">Premium</span>
+            }
+            @if (isAvailable(product) && !isExpensive(product)) {
+              <span class="badge green">Disponible</span>
+            }
+          </div>
 
-  <!-- ==================== LEYENDA ARQUITECTURA ==================== -->
-  <!-- Esto es solo didáctico para entender el flujo -->
+          <div class="card-category">{{ product.category }}</div>
+          <h3 class="card-name">{{ product.name }}</h3>
+
+          <div class="card-price">
+            <span class="price-main">${{ product.price | number: "1.2-2" }}</span>
+            @if (isAvailable(product)) {
+              <span class="price-discount">
+                con 10% desc: ${{ getPriceWithDiscount(product) | number: "1.2-2" }}
+              </span>
+            }
+          </div>
+
+          <div class="card-stock">
+            <span [class.no-stock]="!isAvailable(product)">
+              Stock: {{ product.stock }} unidades
+            </span>
+          </div>
+
+          <div class="card-actions">
+            <button class="btn-danger small" (click)="deleteProduct(product)">
+              Eliminar
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+  }
+
   <div class="arch-legend">
-    <h3>🏗️ Flujo de esta pantalla</h3>
+    <h3>Flujo de esta pantalla</h3>
     <div class="arch-flow">
       <div class="arch-step ui">
-        <strong>Presentación</strong>
+        <strong>Presentacion</strong>
         <small>product-list.component</small>
       </div>
-      <div class="arch-arrow">→</div>
+      <div class="arch-arrow">-></div>
       <div class="arch-step app">
-        <strong>Aplicación</strong>
+        <strong>Aplicacion</strong>
         <small>GetProductsUseCase</small>
       </div>
-      <div class="arch-arrow">→</div>
+      <div class="arch-arrow">-></div>
       <div class="arch-step domain">
         <strong>Dominio</strong>
-        <small>ProductRepository (interfaz)</small>
+        <small>ProductRepository</small>
       </div>
-      <div class="arch-arrow">→</div>
+      <div class="arch-arrow">-></div>
       <div class="arch-step infra">
         <strong>Infraestructura</strong>
         <small>ProductMockRepository</small>
       </div>
     </div>
   </div>
-
 </div>
